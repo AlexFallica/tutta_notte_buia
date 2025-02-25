@@ -25,7 +25,7 @@
         }
 
         h1 {
-            font-size: 20px;
+            font-size: 30px;
         }
 
         form, #canvas_div {
@@ -48,7 +48,7 @@
         canvas {
             border: 2px solid white;
             background-color: black;
-            touch-action: none; /* Prevents scrolling when touching the canvas */
+            touch-action: none; /* Prevent scrolling while drawing */
         }
     </style>
 </head>
@@ -76,9 +76,8 @@
         </select>
         Color:
         <select id="selColor">
-            <option value="white"selected="selected">white</option>
             <option value="black">black</option>
-            <option value="blue">blue</option>
+            <option value="blue" selected="selected">blue</option>
             <option value="red">red</option>
             <option value="green">green</option>
             <option value="yellow">yellow</option>
@@ -103,7 +102,7 @@
         });
 
         // WebSocket Connection
-        const ws = new WebSocket("wss://192.168.1.100:9000");  // Change with your server's IP
+        const ws = new WebSocket("wss://TUO_SERVER:9000");  // Modifica con l'URL del tuo server
 
         ws.onopen = function() {
             console.log("Connected to WebSocket server");
@@ -127,9 +126,19 @@
         // Canvas Drawing Events
         const canvas = document.getElementById('canvas');
         const context = canvas.getContext('2d');
+
+        canvas.style.touchAction = "none"; // Evita lo scrolling durante il disegno
+
         let isDrawing = false;
         let lastX = 0, lastY = 0;
+        let lastTimestamp = 0;
 
+        // Funzione per interpolazione (rende le linee più fluide)
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
+        }
+
+        // Ottieni le coordinate corrette sul canvas
         function getCanvasCoords(event) {
             const rect = canvas.getBoundingClientRect();
             const x = event.clientX || event.touches[0].clientX;
@@ -137,6 +146,7 @@
             return { x: x - rect.left, y: y - rect.top };
         }
 
+        // Inizia a disegnare
         function startDrawing(event) {
             event.preventDefault();
             isDrawing = true;
@@ -145,27 +155,43 @@
             lastY = pos.y;
         }
 
+        // Disegna con interpolazione per fluidità
         function draw(event) {
             event.preventDefault();
             if (!isDrawing) return;
 
             const pos = getCanvasCoords(event);
-            context.beginPath();
-            context.moveTo(lastX, lastY);
-            context.lineTo(pos.x, pos.y);
-            context.lineWidth = document.getElementById('selWidth').value;
-            context.strokeStyle = document.getElementById('selColor').value;
-            context.lineCap = "round";
-            context.stroke();
-            lastX = pos.x;
-            lastY = pos.y;
+            const currentTime = performance.now();
+            const deltaTime = currentTime - lastTimestamp;
+
+            if (deltaTime > 10) {
+                let t = 0;
+                while (t <= 1) {
+                    const interpolatedX = lerp(lastX, pos.x, t);
+                    const interpolatedY = lerp(lastY, pos.y, t);
+                    context.beginPath();
+                    context.moveTo(lastX, lastY);
+                    context.lineTo(interpolatedX, interpolatedY);
+                    context.lineWidth = document.getElementById('selWidth').value;
+                    context.strokeStyle = document.getElementById('selColor').value;
+                    context.lineCap = "round";
+                    context.stroke();
+                    t += 0.2;
+                }
+
+                lastX = pos.x;
+                lastY = pos.y;
+                lastTimestamp = currentTime;
+            }
         }
 
+        // Ferma il disegno
         function stopDrawing(event) {
             event.preventDefault();
             isDrawing = false;
         }
 
+        // Aggiunge gli eventi touch e mouse
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', stopDrawing);
