@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Form + Canvas</title>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <style>
+        /* Background effect */
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            background-color: black;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            color: white;
+        }
+
+        h1 {
+            font-size: 20px;
+        }
+
+        form, #canvas_div {
+            margin-bottom: 40px;
+        }
+
+        input, button {
+            padding: 10px;
+            font-size: 18px;
+        }
+
+        /* Canvas styles */
+        #canvas_div {
+            text-align: center;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        canvas {
+            border: 2px solid white;
+            background-color: black;
+            touch-action: none; /* Prevents scrolling when touching the canvas */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Particle effect container -->
+    <div id="particles-js"></div>
+
+    <h1>Insert Your Name and Email</h1>
+    <form id="userForm">
+        <input type="text" id="name" name="name" placeholder="Name..." required>
+        <input type="email" id="email" name="email" placeholder="Email..." required>
+        <button type="button" onclick="sendData()">Submit</button>
+    </form>
+
+    <h1>Draw something here:</h1>
+    <div id="canvas_div">
+        <canvas id="canvas" width="900" height="360"></canvas>
+        <button onclick="clearArea();return false;">Clear</button>
+        Line width:
+        <select id="selWidth">
+            <option value="11">11</option>
+            <option value="13" selected="selected">13</option>
+            <option value="15">15</option>
+        </select>
+        Color:
+        <select id="selColor">
+            <option value="white"selected="selected">white</option>
+            <option value="black">black</option>
+            <option value="blue">blue</option>
+            <option value="red">red</option>
+            <option value="green">green</option>
+            <option value="yellow">yellow</option>
+            <option value="gray">gray</option>
+        </select>
+    </div>
+
+    <script>
+        // Initialize Particles.js
+        particlesJS("particles-js", {
+            "particles": {
+                "number": { "value": 300, "density": { "enable": true, "value_area": 800 } },
+                "color": { "value": "#ffffff" },
+                "shape": { "type": "circle" },
+                "opacity": { "value": 0.5, "random": true },
+                "size": { "value": 3, "random": true },
+                "move": { "enable": true, "speed": 1, "direction": "none", "random": true, "straight": false, "out_mode": "out" },
+                "line_linked": { "enable": false }
+            },
+            "interactivity": { "detect_on": "canvas", "events": { "onhover": { "enable": false }, "onclick": { "enable": false } } },
+            "retina_detect": true
+        });
+
+        // WebSocket Connection
+        const ws = new WebSocket("ws://192.168.1.100:9000");  // Change with your server's IP
+
+        ws.onopen = function() {
+            console.log("Connected to WebSocket server");
+        };
+
+        function sendData() {
+            const name = document.getElementById("name").value;
+            const email = document.getElementById("email").value;
+            const drawingData = canvas.toDataURL();  // Convert canvas to Base64 image
+
+            const data = {
+                name: name,
+                email: email,
+                drawing: drawingData
+            };
+
+            ws.send(JSON.stringify(data));
+            alert("Data sent!");
+        }
+
+        // Canvas Drawing Events
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        let isDrawing = false;
+        let lastX = 0, lastY = 0;
+
+        function getCanvasCoords(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX || event.touches[0].clientX;
+            const y = event.clientY || event.touches[0].clientY;
+            return { x: x - rect.left, y: y - rect.top };
+        }
+
+        function startDrawing(event) {
+            event.preventDefault();
+            isDrawing = true;
+            const pos = getCanvasCoords(event);
+            lastX = pos.x;
+            lastY = pos.y;
+        }
+
+        function draw(event) {
+            event.preventDefault();
+            if (!isDrawing) return;
+
+            const pos = getCanvasCoords(event);
+            context.beginPath();
+            context.moveTo(lastX, lastY);
+            context.lineTo(pos.x, pos.y);
+            context.lineWidth = document.getElementById('selWidth').value;
+            context.strokeStyle = document.getElementById('selColor').value;
+            context.lineCap = "round";
+            context.stroke();
+            lastX = pos.x;
+            lastY = pos.y;
+        }
+
+        function stopDrawing(event) {
+            event.preventDefault();
+            isDrawing = false;
+        }
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        canvas.addEventListener('touchstart', startDrawing, { passive: false });
+        canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchend', stopDrawing, { passive: false });
+
+        function clearArea() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    </script>
+
+</body>
+</html>
