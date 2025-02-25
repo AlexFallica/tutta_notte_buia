@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Form + Canvas</title>
+    <title>Tutta Notte Buia - MAalex</title>
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <style>
-        /* Background effect */
+        /* Background effect with fade-in animation */
         #particles-js {
             position: fixed;
             width: 100%;
@@ -15,27 +15,69 @@
             left: 0;
             z-index: -1;
             background-color: black;
+            opacity: 0;
+            animation: fadeIn 3s ease-in forwards;
         }
 
         body {
+            background-color: black;
             margin: 0;
-            font-family: Arial, sans-serif;
+            margin-top: 10vh;
+            font-family: 'Courier New', Courier, monospace;
             text-align: center;
             color: white;
         }
 
-        h1 {
-            font-size: 30px;
+        @font-face {
+            font-family: "Monospaced";
+            font-weight: 200;
+            src: url(AtkinsonHyperlegibleMono-ExtraLight.ttf);
         }
 
-        form, #canvas_div {
-            margin-bottom: 40px;
+        h1, p {
+            font-family: "Monospaced";
+            opacity: 0;
+            animation: fadeInUp 3s ease-out forwards;
         }
 
-        input, button {
+        button {
             padding: 10px;
             font-size: 18px;
+            margin: 5px;
+            border: 1px solid white;
+            background: black;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
         }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Sections */
+        #infoScreen, #formSection, #canvasSection {
+            transition: opacity 3s ease-in-out;
+        }
+
+        #formSection, #canvasSection {
+            display: none;
+        }
+
+        /* Fade-in and fade-out animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in { opacity: 0; animation: fadeIn 3s ease-in forwards; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .fade-out { animation: fadeOut 3s ease-out forwards; }
+
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 
         /* Canvas styles */
         #canvas_div {
@@ -43,167 +85,149 @@
             display: block;
             margin-left: auto;
             margin-right: auto;
+            width: 90vw;
+            height: 50vh;
         }
 
         canvas {
-            border: 2px solid white;
             background-color: black;
-            touch-action: none; /* Prevent scrolling while drawing */
+            width: 100%;
+            height: 100%;
+            touch-action: none;
         }
     </style>
 </head>
-<body>
+<body onload="getUserInfo()">
 
     <!-- Particle effect container -->
     <div id="particles-js"></div>
 
-    <h1>Insert Your Name and Email</h1>
-    <form id="userForm">
-        <input type="text" id="name" name="name" placeholder="Name..." required>
-        <input type="email" id="email" name="email" placeholder="Email..." required>
-        <button type="button" onclick="sendData()">Submit</button>
-    </form>
+    <!-- First Screen with User Info -->
+    <div id="infoScreen">
+        <h1>Welcome!</h1>
+        <p id="browserLanguage">🌍 Detecting browser language...</p>
+        <p id="timeZone">🕒 Detecting time zone...</p>
+        <p id="userLocation">📍 Detecting location...</p>
+        <p id="userIP">💻 Detecting IP address...</p>
+        <button onclick="proceedToForm()">Continue</button>
+    </div>
 
-    <h1>Draw something here:</h1>
-    <div id="canvas_div">
-        <canvas id="canvas" width="900" height="360"></canvas>
-        <button onclick="clearArea();return false;">Clear</button>
-        Line width:
-        <select id="selWidth">
-            <option value="11">11</option>
-            <option value="13" selected="selected">13</option>
-            <option value="15">15</option>
-        </select>
-        Color:
-        <select id="selColor">
-            <option value="white" selected="selected">white</option>
-            <option value="black">black</option>
-            <option value="blue">blue</option>
-            <option value="red">red</option>
-            <option value="green">green</option>
-            <option value="yellow">yellow</option>
-            <option value="gray">gray</option>
-        </select>
+    <!-- Name, Surname, Email Form -->
+    <div id="formSection">
+        <h1>Your Name</h1>
+        <input type="text" class="fade-in" id="firstName" name="firstName" placeholder="First Name..." required>
+
+        <h1>Your Surname</h1>
+        <input type="text" class="fade-in" id="lastName" name="lastName" placeholder="Last Name..." required>
+
+        <h1>Your Email</h1>
+        <input type="email" class="fade-in" id="email" name="email" placeholder="Email..." required>
+
+        <button type="button" class="fade-in" onclick="validateForm()">Submit</button>
+    </div>
+
+    <!-- Drawing Section -->
+    <div id="canvasSection">
+        <h1 id="drawTitle" class="fade-in">Draw something here:</h1>
+        <div id="canvas_div">
+            <canvas id="canvas" class="fade-in"></canvas> 
+            <button onclick="clearCanvas();" class="fade-in">Clear</button>
+            <button id="submitDrawingBtn" onclick="submitDrawing()" disabled class="fade-in">Submit Drawing</button>
+        </div>
     </div>
 
     <script>
         // Initialize Particles.js
         particlesJS("particles-js", {
             "particles": {
-                "number": { "value": 300, "density": { "enable": true, "value_area": 800 } },
+                "number": { "value": 200, "density": { "enable": true, "value_area": 800 } },
                 "color": { "value": "#ffffff" },
                 "shape": { "type": "circle" },
                 "opacity": { "value": 0.5, "random": true },
-                "size": { "value": 3, "random": true },
-                "move": { "enable": true, "speed": 1, "direction": "none", "random": true, "straight": false, "out_mode": "out" },
+                "size": { "value": 2, "random": true },
+                "move": { "enable": true, "speed": 0.5, "direction": "none", "random": true, "straight": false, "out_mode": "out" },
                 "line_linked": { "enable": false }
             },
             "interactivity": { "detect_on": "canvas", "events": { "onhover": { "enable": false }, "onclick": { "enable": false } } },
             "retina_detect": true
         });
 
-        // WebSocket Connection
-        const ws = new WebSocket("wss://TUO_SERVER:9000");  // Modifica con l'URL del tuo server
+        function getUserInfo() {
+            document.getElementById("browserLanguage").innerHTML = `🌍 Browser Language: <b>${navigator.language}</b>`;
+            document.getElementById("timeZone").innerHTML = `🕒 Time Zone: <b>${Intl.DateTimeFormat().resolvedOptions().timeZone}</b>`;
 
-        ws.onopen = function() {
-            console.log("Connected to WebSocket server");
-        };
-
-        function sendData() {
-            const name = document.getElementById("name").value;
-            const email = document.getElementById("email").value;
-            const drawingData = canvas.toDataURL();  // Convert canvas to Base64 image
-
-            const data = {
-                name: name,
-                email: email,
-                drawing: drawingData
-            };
-
-            ws.send(JSON.stringify(data));
-            alert("Data sent!");
+            fetch("https://api.ipregistry.co/?key=tryout")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("userLocation").innerHTML = 
+                        `📍 Approximate Location: <b>${data.location.city}, ${data.location.country.name}</b>`;
+                    document.getElementById("userIP").innerHTML =
+                        `IP Address: <b>${data.ip}</b>`;
+                })
+                .catch(() => {
+                    document.getElementById("userLocation").innerHTML = "📍 Location unavailable.";
+                    document.getElementById("userIP").innerHTML = "💻 IP unavailable.";
+                });
         }
 
-        // Canvas Drawing Events
-        const canvas = document.getElementById('canvas');
-        const context = canvas.getContext('2d');
-
-        canvas.style.touchAction = "none"; // Evita lo scrolling durante il disegno
-
-        let isDrawing = false;
-        let lastX = 0, lastY = 0;
-        let lastTimestamp = 0;
-
-        // Funzione per interpolazione (rende le linee più fluide)
-        function lerp(a, b, t) {
-            return a + (b - a) * t;
+        function proceedToForm() {
+            document.getElementById("infoScreen").classList.add("fade-out");
+            setTimeout(() => {
+                document.getElementById("infoScreen").style.display = "none";
+                document.getElementById("formSection").style.display = "block";
+            }, 3000);
         }
 
-        // Ottieni le coordinate corrette sul canvas
-        function getCanvasCoords(event) {
-            const rect = canvas.getBoundingClientRect();
-            const x = event.clientX || event.touches[0].clientX;
-            const y = event.clientY || event.touches[0].clientY;
-            return { x: x - rect.left, y: y - rect.top };
-        }
-
-        // Inizia a disegnare
-        function startDrawing(event) {
-            event.preventDefault();
-            isDrawing = true;
-            const pos = getCanvasCoords(event);
-            lastX = pos.x;
-            lastY = pos.y;
-        }
-
-        // Disegna con interpolazione per fluidità
-        function draw(event) {
-            event.preventDefault();
-            if (!isDrawing) return;
-
-            const pos = getCanvasCoords(event);
-            const currentTime = performance.now();
-            const deltaTime = currentTime - lastTimestamp;
-
-            if (deltaTime > 10) {
-                let t = 0;
-                while (t <= 1) {
-                    const interpolatedX = lerp(lastX, pos.x, t);
-                    const interpolatedY = lerp(lastY, pos.y, t);
-                    context.beginPath();
-                    context.moveTo(lastX, lastY);
-                    context.lineTo(interpolatedX, interpolatedY);
-                    context.lineWidth = document.getElementById('selWidth').value;
-                    context.strokeStyle = document.getElementById('selColor').value;
-                    context.lineCap = "round";
-                    context.stroke();
-                    t += 0.1;
-                }
-
-                lastX = pos.x;
-                lastY = pos.y;
-                lastTimestamp = currentTime;
+        function validateForm() {
+            if (!document.getElementById("firstName").value.trim() || 
+                !document.getElementById("lastName").value.trim() || 
+                !document.getElementById("email").value.trim()) {
+                alert("All fields are required!");
+                return;
             }
+            goToCanvas();
         }
 
-        // Ferma il disegno
-        function stopDrawing(event) {
-            event.preventDefault();
-            isDrawing = false;
+        function goToCanvas() {
+            document.getElementById("formSection").classList.add("fade-out");
+            setTimeout(() => {
+                document.getElementById("formSection").style.display = "none";
+                document.getElementById("canvasSection").style.display = "block";
+                setupCanvas();
+            }, 3000);
         }
 
-        // Aggiunge gli eventi touch e mouse
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
+        function setupCanvas() {
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+            const submitBtn = document.getElementById("submitDrawingBtn");
 
-        canvas.addEventListener('touchstart', startDrawing, { passive: false });
-        canvas.addEventListener('touchmove', draw, { passive: false });
-        canvas.addEventListener('touchend', stopDrawing, { passive: false });
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
 
-        function clearArea() {
-            context.clearRect(0, 0, canvas.width, canvas.height);
+            let isDrawing = false;
+
+            canvas.addEventListener("mousedown", (e) => {
+                isDrawing = true;
+                ctx.beginPath();
+                ctx.moveTo(e.offsetX, e.offsetY);
+            });
+
+            canvas.addEventListener("mousemove", (e) => {
+                if (isDrawing) {
+                    ctx.lineTo(e.offsetX, e.offsetY);
+                    ctx.strokeStyle = "white";
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    submitBtn.disabled = false;
+                }
+            });
+
+            canvas.addEventListener("mouseup", () => isDrawing = false);
+        }
+
+        function submitDrawing() {
+            alert("🎨 Drawing submitted!");
         }
     </script>
 
