@@ -137,6 +137,22 @@
     </div>
 
     <script>
+
+        // Initialize Particles.js
+        particlesJS("particles-js", {
+            "particles": {
+                "number": { "value": 200, "density": { "enable": true, "value_area": 800 } },
+                "color": { "value": "#ffffff" },
+                "shape": { "type": "circle" },
+                "opacity": { "value": 0.5, "random": true },
+                "size": { "value": 2, "random": true },
+                "move": { "enable": true, "speed": 0.5, "direction": "none", "random": true, "straight": false, "out_mode": "out" },
+                "line_linked": { "enable": false }
+            },
+            "interactivity": { "detect_on": "canvas", "events": { "onhover": { "enable": false }, "onclick": { "enable": false } } },
+            "retina_detect": true
+        });
+
         function getUserInfo() {
             document.getElementById("browserLanguage").innerHTML = `🌍 Browser Language: <b>${navigator.language}</b>`;
             document.getElementById("timeZone").innerHTML = `🕒 Time Zone: <b>${Intl.DateTimeFormat().resolvedOptions().timeZone}</b>`;
@@ -233,6 +249,13 @@
             canvas.addEventListener("touchstart", startDrawing, { passive: false });
             canvas.addEventListener("touchmove", draw, { passive: false });
             canvas.addEventListener("touchend", stopDrawing);
+        }
+
+        function clearCanvas() {
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById("submitDrawingBtn").disabled = true;
         }
 
         function submitDrawing() {
